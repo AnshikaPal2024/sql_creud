@@ -1,0 +1,209 @@
+USE [practice]
+GO
+/****** Object:  StoredProcedure [dbo].[insertintosptable]    Script Date: 24-10-2024 17:12:59 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[insertintosptable]
+    @Action VARCHAR(20),
+    @id INT = NULL,
+    @name VARCHAR(50) = NULL,
+    @email VARCHAR(50) = NULL,
+    @password VARCHAR(50) = NULL,
+    @mobile VARCHAR(50) = NULL,
+    @gender VARCHAR(50) = NULL,
+    @usertype VARCHAR(50) = NULL,
+    @image VARBINARY(MAX) = NULL,
+    @oldpassword VARCHAR(50) = NULL,
+	@pdf nvarchar(50) = null
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+        IF @Action = 'insert'
+        BEGIN
+            INSERT INTO sptable (name, email, password, mobile, gender, usertype, image,pdf)
+            VALUES (@name, @email, @password, @mobile, @gender, @usertype, @image,@pdf);
+            SELECT @@ROWCOUNT AS RowsAffected;
+        END
+        ELSE IF @Action = 'update'
+        BEGIN
+            IF @id IS NOT NULL
+            BEGIN
+                UPDATE sptable
+                SET name = @name,
+                    email = @email,
+                    password = @password,
+                    mobile = @mobile,
+                    gender = @gender,
+                    usertype = @usertype,
+                    image = COALESCE(@image, image),
+					pdf=@pdf
+                WHERE id = @id;
+                SELECT @@ROWCOUNT AS RowsAffected;
+            END
+            ELSE
+            BEGIN
+                SELECT 'ID is required for update.' AS ErrorMessage;
+            END
+        END
+        ELSE IF @Action = 'delete'
+        BEGIN
+            IF @id IS NOT NULL
+            BEGIN
+                DELETE FROM sptable WHERE id = @id;
+                SELECT @@ROWCOUNT AS RowsAffected;
+            END
+            ELSE
+            BEGIN
+                SELECT 'ID is required for deletion.' AS ErrorMessage;
+            END
+        END
+        ELSE IF @Action = 'read'
+        BEGIN
+            IF @id IS NOT NULL
+            BEGIN
+                SELECT * FROM sptable WHERE id = @id;
+            END
+            ELSE
+            BEGIN
+                SELECT * FROM sptable;
+            END
+        END
+        ELSE IF @Action = 'showdetails'
+        BEGIN
+            SELECT * FROM sptable;
+        END
+        ELSE IF @Action = 'userdetails'
+        BEGIN
+            IF @usertype IS NOT NULL
+            BEGIN
+                SELECT * FROM sptable WHERE usertype = @usertype;
+            END
+            ELSE
+            BEGIN
+                SELECT 'Usertype is required to filter user details.' AS ErrorMessage;
+            END
+        END
+        ELSE IF @Action = 'deleteuser'
+        BEGIN
+            IF @id IS NOT NULL
+            BEGIN
+                DELETE FROM sptable WHERE id = @id;
+                SELECT @@ROWCOUNT AS RowsAffected;
+            END
+            ELSE
+            BEGIN
+                SELECT 'ID is required for deletion.' AS ErrorMessage;
+            END
+        END
+        ELSE IF @Action = 'updateuser'
+        BEGIN
+            IF @id IS NOT NULL
+            BEGIN
+                UPDATE sptable
+                SET name = @name,
+                    email = @email,
+                    password = @password,
+                    mobile = @mobile,
+                    gender = @gender,
+                    usertype = @usertype,
+                    image = COALESCE(@image, image),
+					pdf=@pdf
+                WHERE id = @id;
+                SELECT @@ROWCOUNT AS RowsAffected;
+            END
+            ELSE
+            BEGIN
+                SELECT 'ID is required for update.' AS ErrorMessage;
+            END
+        END
+        ELSE IF @Action = 'SpEdit'
+        BEGIN
+            IF @name IS NOT NULL
+            BEGIN
+                UPDATE sptable
+                SET mobile = @mobile,
+                    email = @email,
+                    gender = @gender
+                WHERE name = @name;
+                SELECT @@ROWCOUNT AS RowsAffected;
+            END
+            ELSE
+            BEGIN
+                SELECT 'Name is required for editing.' AS ErrorMessage;
+            END
+        END
+        ELSE IF @Action = 'changepassword'
+        BEGIN
+            IF @id IS NOT NULL AND @oldpassword IS NOT NULL AND @password IS NOT NULL
+            BEGIN
+                UPDATE sptable
+                SET password = @password
+                WHERE id = @id AND password = @oldpassword;
+                SELECT @@ROWCOUNT AS RowsAffected;
+            END
+            ELSE
+            BEGIN
+                SELECT 'ID, Old Password, and New Password are required for changing the password.' AS ErrorMessage;
+            END
+        END
+        ELSE IF @Action = 'GetEmailAndPassword'
+        BEGIN
+            IF @email IS NOT NULL
+            BEGIN
+                SELECT email, password FROM sptable WHERE email = @email;
+            END
+            ELSE
+            BEGIN
+                SELECT 'Email is required to get email and password.' AS ErrorMessage;
+            END
+        END
+        ELSE IF @Action = 'fetchuserdata'
+        BEGIN
+            IF @name IS NOT NULL
+            BEGIN
+                SELECT * FROM sptable WHERE name = @name;
+            END
+            ELSE
+            BEGIN
+                SELECT 'Name is required to fetch user data.' AS ErrorMessage;
+            END
+        END
+        ELSE IF @Action = 'login'
+        BEGIN
+            IF @name IS NOT NULL
+            BEGIN  
+                DECLARE @storedPassword VARCHAR(50);
+                DECLARE @storedUserType VARCHAR(50);
+
+                SELECT @storedPassword = password, @storedUserType = usertype
+                FROM sptable 
+                WHERE name = @name;
+
+                IF @storedPassword IS NOT NULL
+                BEGIN
+                    SELECT @storedPassword AS password, @storedUserType AS usertype;
+                END
+                ELSE
+                BEGIN
+                    SELECT NULL AS password, NULL AS usertype;
+                END
+            END
+            ELSE
+            BEGIN
+                SELECT NULL AS password, NULL AS usertype;
+            END
+        END
+        ELSE
+        BEGIN
+            SELECT 'Invalid action.' AS ErrorMessage;
+        END
+    END TRY
+    BEGIN CATCH
+        SELECT ERROR_MESSAGE() AS ErrorMessage;
+    END CATCH
+END
